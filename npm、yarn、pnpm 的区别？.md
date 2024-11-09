@@ -90,9 +90,22 @@ pnpm 通过全局存储和符号链接机制从根源上解决了依赖重复安
 
 执行 pnpm add express，我们可以看到整个目录，由于只安装了 express，那 node_modules 下就只有 express
 
+那么所有的（次级）依赖去哪了呢？在node_modules/.pnpm/目录下，.pnpm/ 以平铺的形式储存着所有的包
 
+![image](https://github.com/user-attachments/assets/d30a2b99-9ca7-4949-aa0f-da2e05f94712)
 
+## 三层寻址
 
+所有 npm 包都安装在全局目录 ~/.pnpm-store/v3/files 下，同一版本的包仅存储一份内容，甚至不同版本的包也仅存储 diff 内容。
 
+顶层 node_modules 下有 .pnpm 目录以打平结构管理每个版本包的源码内容，以硬链接方式指向 pnpm-store 中的文件地址。
 
+每个项目 node_modules 下安装的包以软链接方式将内容指向 node_modules/.pnpm 中的包。 所以每个包的寻找都要经过三层结构：node_modules/package-a > 软链接 node_modules/.pnpm/package-a@1.0.0/node_modules/package-a > 硬链接 ~/.pnpm-store/v3/files/00/xxxxxx。
 
+这就是 pnpm 的实现原理。官方给了一张原理图，可以搭配食用
+
+![image](https://github.com/user-attachments/assets/3be88e8c-1eb3-4f9a-a904-c9958adc8387)
+
+前面说过，npm 包都被安装在全局 pnpm store ，默认情况下，会创建多个存储（每个驱动器（盘符）一个），并在项目所在盘符的根目录
+
+所以，同一个盘符下的不同项目，都可以共用同一个全局 pnpm store，绝绝子啊 👏，大大节省了磁盘空间，提高了安装速度
